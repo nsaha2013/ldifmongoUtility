@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: grep4j-1.8.7">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.googlecode.grep4j/grep4j/1.8.7/aaea84dd41410695aeb6d7beb954ffbdfcedbd3e/grep4j-1.8.7.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.googlecode.grep4j/grep4j/1.8.7/552d521e6c7c6436ac245fd1d9658ff51bba31e5/grep4j-1.8.7-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
