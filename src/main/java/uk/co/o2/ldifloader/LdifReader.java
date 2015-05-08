@@ -8,19 +8,18 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
-/**
- * Created by ee on 4/30/15.
- */
 public class LdifReader {
     protected MongoReader mongoReader;
     protected GrepCommand grep;
+    private final String logfile;
 
-    public LdifReader(MongoReader mongoReader,GrepCommand grep) {
+    public LdifReader(MongoReader mongoReader, GrepCommand grep, String logfile) {
         this.mongoReader = mongoReader;
         this.grep = grep;
+        this.logfile = logfile;
     }
 
-    protected void readUIDfromFile(String fileName) throws IOException {
+    protected void readUIDfromFile(String fileName,String ldiffilename) throws IOException {
 
         String line;
         BufferedReader br = new BufferedReader(new FileReader(fileName));
@@ -36,9 +35,17 @@ public class LdifReader {
 
                     if(mongoReader.searchUIDinMongo(uid) == null ){
 
-                        if(!grep.searchLogfile(LDIFloaderTest.logfile,uid)){
-                            LDIFloaderTest.recordsNotFound++;
-                            System.out.println(uid);
+                        if(!grep.searchLogfile(logfile,uid)){
+                            GrepResults ldifrecord = grep.getIdentitydetailfromldif(ldiffilename, uid);
+                            String username = getUserName(ldifrecord);
+
+                            if(!grep.searchLogfile(logfile,username)){
+                                LDIFloaderTest.recordsNotFound++;
+                                System.out.println("Record not imported in mongo and not present in log file, uid : " +uid);
+                            }else{
+                                LDIFloaderTest.recordsError++;
+                            }
+
                         }else{
                             LDIFloaderTest.recordsError++;
                         }
@@ -72,13 +79,15 @@ public class LdifReader {
                     if((mongorecord) != null ){
 
                         GrepResults ldifrecord = grep.getIdentitydetailfromldif(ldiffilename, uid);
-                        compareAllField(mongorecord,ldifrecord);
+                        if(!compareAllField(mongorecord,ldifrecord,uid)){
+                            LDIFloaderTest.recordsNotmatch++;
+                        }
 
 
                     }else{
-                        if(!grep.searchLogfile(LDIFloaderTest.logfile,uid)){
+                        if(!grep.searchLogfile(logfile,uid)){
                             LDIFloaderTest.recordsNotFound++;
-                            System.out.println(uid);
+                            System.out.println("No entry found in the mongo for the uid : " +uid);
                         }else{
                             LDIFloaderTest.recordsError++;
                         }
@@ -95,8 +104,9 @@ public class LdifReader {
 
 
 
-    private void compareAllField(DBObject mongorecord,GrepResults ldifrecord){
+    private boolean compareAllField(DBObject mongorecord,GrepResults ldifrecord,String uid){
 
+        Boolean validationStatus = true;
         String[] fieldLdif;
         String[] arrayldifrecord = ldifrecord.toString().split("\n");
 
@@ -124,11 +134,15 @@ public class LdifReader {
             }
 
 
-
-            System.out.println(comparefield(mongorecord, fieldLdif));
+            //System.out.println(comparefield(mongorecord, fieldLdif));
+            if(comparefield(mongorecord, fieldLdif).equals("false")){
+                validationStatus = false;
+                System.out.println("Noted above is the Mismatch  identified in Mongo and LDIF for uid : " +uid + " and field : " + fieldLdif[0]);
+            }
 
         }
 
+        return validationStatus;
     }
 
 
@@ -164,18 +178,27 @@ public class LdifReader {
 
         for(int i=0;i<LdifFields.length;i++){
             if(LdifFields[i].equalsIgnoreCase(fieldLdif[0])){
-                System.out.println(fieldLdif[0]);
+                //System.out.println(fieldLdif[0]);
 
                 if(fieldLdif[0].equalsIgnoreCase("userpassword")){
                     fieldLdif[1] = fieldLdif[1].replace("{SSHA}","");
                 }
 
-                if(fieldLdif[1].trim().equalsIgnoreCase(String.valueOf(mongorecord.get(MongoFields[i])))){
-                    System.out.println(fieldLdif[1]);
+                if(fieldLdif[0].equalsIgnoreCase("regdpasswordexpiredflag")){
+                    if(fieldLdif[1].equals("1")){
+                        fieldLdif[1] = "true";
+                    }else{
+                        fieldLdif[1] = "false";
+                    }
+                }
+
+
+                if(fieldLdif[1].trim().equalsIgnoreCase(String.valueOf(mongorecord.get(MongoFields[i])).trim())){
+                    //System.out.println(fieldLdif[1]);
                     return "true";
                 }else{
-                    System.out.println(fieldLdif[1]);
-                    System.out.println(mongorecord.get(MongoFields[i]));
+                    System.out.println("value in LDIF : " +fieldLdif[1]);
+                    System.out.println("value in MONGO : " +mongorecord.get(MongoFields[i]));
                     return "false";
                 }
 
@@ -183,6 +206,23 @@ public class LdifReader {
         }
         return "invalid";
     }
+
+    private String getUserName(GrepResults ldifrecord){
+        String[] arrayldifrecord = ldifrecord.toString().split("\n");
+
+        for(int i=1;i<arrayldifrecord.length;i++) {
+
+            if (arrayldifrecord[i].startsWith("dn: uid=")) {
+                break;
+            }
+
+            if (arrayldifrecord[i].startsWith("cn:")) {
+                return arrayldifrecord[i].substring(3, arrayldifrecord[i].length()).trim();
+            }
+        }
+
+        return null;
+        }
 
     public boolean isNumeric(String str)
     {
