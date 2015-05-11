@@ -25,9 +25,14 @@ public class LDIFloaderTest {
     }
 
     public static void main(String[] args) throws IOException {
+        long startTimeInMillis = System.currentTimeMillis();
         ReadPropertyFile readprop = new ReadPropertyFile();
         LDIFloaderTest test = new LDIFloaderTest(readprop.getPropValues("ldiffile"), readprop.getPropValues("mongoconnectionUrl"), readprop.getPropValues("logfile"), Boolean.parseBoolean(readprop.getPropValues("sample")), readprop.getPropValues("inputfile"));
         test.check();
+
+        System.out.println();
+        System.out.println("Total time taken : " + ((System.currentTimeMillis() - startTimeInMillis) / 1000)/60 + " minutes " + ((System.currentTimeMillis() - startTimeInMillis) / 1000)%60 + " seconds");
+
     }
 
     private void check() throws IOException {

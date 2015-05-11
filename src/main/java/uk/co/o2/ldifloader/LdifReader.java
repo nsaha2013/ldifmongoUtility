@@ -43,10 +43,12 @@ public class LdifReader {
                                 LDIFloaderTest.recordsNotFound++;
                                 System.out.println("Record not imported in mongo and not present in log file, uid : " +uid);
                             }else{
+                                System.out.println("Record not imported in mongo due to duplicate username, uid : " +uid +" username : " +username);
                                 LDIFloaderTest.recordsError++;
                             }
 
                         }else{
+                            System.out.println("Record not imported in mongo and the reason logged in logfile, uid : " +uid);
                             LDIFloaderTest.recordsError++;
                         }
 
@@ -89,6 +91,7 @@ public class LdifReader {
                             LDIFloaderTest.recordsNotFound++;
                             System.out.println("No entry found in the mongo for the uid : " +uid);
                         }else{
+                            System.out.println("Record not imported in mongo and the reason logged in logfile, uid : " +uid);
                             LDIFloaderTest.recordsError++;
                         }
                     }
